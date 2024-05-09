@@ -1,0 +1,231 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import librosa
+import librosa.display
+import IPython.display as ipd
+
+audio_file_piano='piano_c.wav'
+audio,sr=librosa.load(audio_file_piano)
+ipd.Audio(audio_file_piano)
+len(audio)/sr#Duration of the audio=Number of samples/sampling rate
+
+#Visualize the audio in time domain
+start_time = 1
+duration = 2
+audio_segment = audio[int(start_time * sr):int((start_time + duration) * sr)]
+plt.figure(figsize=(12, 6))
+librosa.display.waveshow(audio_segment, sr=sr)
+plt.title('Original Segment')
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.legend()
+
+#Calculating and visualizing spectogram
+spectrogram = librosa.feature.melspectrogram(y=audio, sr=sr)
+spectrogram_db = librosa.power_to_db(spectrogram, ref=np.max)
+
+plt.figure(figsize=(10, 4))
+librosa.display.specshow(spectrogram_db, sr=sr, x_axis='time', y_axis='mel')
+plt.title('Mel Spectrogram')
+plt.xlabel('Time in seconds')
+plt.ylabel('Frequency in Hz')
+plt.show()
+
+#Calculate and plot the mfcc, first and second order derivatives
+mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
+delta_mfcc = librosa.feature.delta(mfcc,order=1)
+delta2_mfcc = librosa.feature.delta(mfcc, order=2)
+
+plt.figure(figsize=(10, 6))
+plt.subplot(3, 1, 1)
+librosa.display.specshow(mfcc, x_axis='time')
+plt.colorbar()
+plt.ylabel('MFCC')
+plt.subplot(3, 1, 2)
+librosa.display.specshow(delta_mfcc, x_axis='time')
+librosa.display.specshow(delta2_mfcc, x_axis='time', sr=sr)
+
+----------------------------------------------------------------------------------------------------------------------
+
+#Plot the amplitude envelope of an audio signal
+# Calculate the amplitude envelope using Hilbert transform
+from scipy.signal import hilbert
+y=audio
+analytic_signal = hilbert(y)
+amplitude_envelope = np.abs(analytic_signal)
+
+# Plot the waveform and its amplitude envelope
+plt.figure(figsize=(10, 6))
+plt.subplot(2, 1, 1)
+plt.title("Audio Signal Waveform")
+librosa.display.waveshow(y, sr=sr)
+plt.subplot(2, 1, 2)
+plt.title("Amplitude Envelope")
+plt.plot(np.arange(len(y)) / sr, amplitude_envelope, color='r')
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.tight_layout()
+plt.show()
+
+#Calculate and plot RMS and ZCR for the audio signal
+# Calculate Root Mean Square (RMS)
+frame_length = 1024
+hop_length = 512
+rms = np.sqrt(np.mean(librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)**2, axis=0))
+
+# Calculate Zero Crossing Rate (ZCR)
+zcr = librosa.feature.zero_crossing_rate(y, frame_length=frame_length, hop_length=hop_length)[0]
+
+# Plot the waveform, amplitude envelope, RMS, and ZCR
+plt.figure(figsize=(12, 8))
+
+plt.subplot(4, 1, 1)
+plt.title("Audio Signal Waveform")
+librosa.display.waveshow(y, sr=sr)
+
+plt.subplot(4, 1, 3)
+plt.title("Root Mean Square (RMS)")
+plt.plot(np.arange(len(rms)) * hop_length / sr, rms, color='r')
+plt.xlabel('Time (s)')
+plt.ylabel('RMS')
+plt.ylim(0, np.max(rms) * 1.1)
+plt.subplot(4, 1, 4)
+plt.title("Zero Crossing Rate (ZCR)")
+plt.plot(np.arange(len(zcr)) * hop_length / sr, zcr, color='g')
+plt.xlabel('Time (s)')
+plt.ylabel('ZCR')
+plt.ylim(0, np.max(zcr) * 1.1)
+plt.tight_layout()
+plt.show()
+
+-------------------------------------------------------------------------------------------------------------------------
+
+#calculate and visualize mel spectogram with varying  filter bank
+n_fft = 2048
+hop_length = 512
+n_mels = 128
+fmin = 20
+fmax = 8000
+
+# Create Mel spectrogram with varying filter banks
+S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=n_fft, hop_length=hop_length,
+                                   n_mels=n_mels, fmin=fmin, fmax=fmax)
+# Convert power spectrogram to dB
+S_dB = librosa.power_to_db(S, ref=np.max)
+# Visualize the Mel spectrogram
+plt.figure(figsize=(10, 4))
+librosa.display.specshow(S_dB, sr=sr, hop_length=hop_length, x_axis='time', y_axis='mel')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Mel Spectrogram with Varying Filter Banks')
+plt.tight_layout()
+plt.show()
+
+---------------------------------------------------------------------------------------------------
+
+#Visualize logarithmic power of a signal
+# Compute the power spectrogram
+S = np.abs(librosa.stft(y))**2
+# Convert power spectrogram to dB scale
+log_power = librosa.power_to_db(S, ref=np.max)
+# Visualize the logarithmic power
+plt.figure(figsize=(10, 4))
+librosa.display.specshow(log_power, sr=sr, x_axis='time', y_axis='log')
+plt.colorbar(format='%+2.0f dB')
+plt.title('Logarithmic Power Spectrogram')
+plt.tight_layout()
+plt.show()
+
+===================================================================================================
+
+#Segmentation
+import cv2
+img=cv2.imread('mahe.jpeg')
+cv2.imshow(img,"org img")
+hsv=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+import numpy as np
+lower_orange = np.array([0, 100, 100])
+upper_orange = np.array([15, 255, 255])
+
+
+mask = cv2.inRange(hsv, lower_orange, upper_orange)
+orange_object = cv2.bitwise_and(img, img, mask=mask)
+cv2.bitwise_not(orange_object)
+
+img=cv2.imread('ipl.jpg')
+hsv=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+lower_blue = np.array([100, 50, 50])
+upper_blue = np.array([140, 255, 255])
+
+mask = cv2.inRange(hsv, lower_blue, upper_blue)
+blue_object = cv2.bitwise_and(img, img, mask=mask)
+cv2.bitwise_not(blue_object)
+
+--------------------------------------------------------------------------------------------------
+
+#Countour
+image = cv2.imread('geometric.png')
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+_, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+edged = cv2.Canny(thresh, 100, 200)
+contours, hierarchy = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+c_image=cv2.drawContours(image, contours, -1, (0, 255, 0), 2)
+
+# Counting countours
+for contour in contours:
+    epsilon = 0.04 * cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, epsilon, True)
+    num_sides=len(approx)
+    if(num_sides==3):
+      print("Triangle")
+    elif(num_sides=='5'):
+      print('Pentagon')
+    elif(num_sides=='4'):
+      print('Square')
+
+for contour in contours:
+  perimeter = cv2.arcLength(contour, True)
+  approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+  num_sides = len(approx)
+
+  if num_sides == 3:
+    print('Triangle')
+  elif num_sides == 4:
+      x, y, w, h = cv2.boundingRect(approx)
+      aspect_ratio = float(w) / h
+      if 0.95 <= aspect_ratio <= 1.05:
+        print('Square')
+      else:
+        print('Rectangle')
+  elif num_sides == 5:
+      print('Pentagon')
+  elif num_sides==6:
+    print("Hexagon")
+
+------------------------------------------------------------------------------------------------------
+
+# laplacian and sobel edge
+img=cv2.resize(img,(256,256))
+gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+laplacian = cv2.Laplacian(gray,cv2.CV_64F)
+laplacian = np.uint8(np.absolute(laplacian))
+cv2.Canny(laplacian,150,255)
+
+blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+
+sobel_x = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=1)
+sobel_y = cv2.Sobel(blurred, cv2.CV_64F, 0, 1, ksize=1)
+
+gradient_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+gradient_magnitude = np.uint8(gradient_magnitude)
+
+edges = cv2.Canny(gradient_magnitude, 30, 50)
+
+#CannyEdgeDetection
+gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+filter=cv2.GaussianBlur(gray,(3,3),0)
+cv2.Canny(gray,60,100)
+
+img=cv2.imread('bell.jpg')
+gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+filter=cv2.GaussianBlur(gray,(3,3),255)
+cv2.Canny(filter,50,140)
